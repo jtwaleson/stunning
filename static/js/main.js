@@ -1,5 +1,6 @@
 var pairings = {};
 var outgoing = [];
+var values = {};
 $(function () {
 
     var iceServers = {
@@ -20,19 +21,38 @@ $(function () {
     var RTCSessionDescription = window.RTCSessionDescription;
 
     function send_to_outgoing(data) {
-        if (outgoing.length === 0) {
-            socket.emit('nn_output', data);
-        } else {
-            for (var i in outgoing) {
-                var connection = outgoing[i];
-                connection.datachannel.send(data);
+        if (!(data.id in values)) {
+            values[data.id] = 0.0;
+        }
+        if (values[data.id] !== false && values[data.id] > 0.5) {
+            if (outgoing.length === 0) {
+                socket.emit('nn_output', data);
+            } else {
+                for (var i in outgoing) {
+                    var connection = outgoing[i];
+                    var block = {
+                        id: data.id,
+                        value: connection.datachannel.sigma,
+                    };
+                    connection.datachannel.send(JSON.stringify(block));
+                }
             }
+            values[data.id] = false;
         }
     }
 
-    function setChannelEvents(channel, channelNameForConsoleOutput) {
+    function setChannelEvents(channel) {
+        channel.sigma = Math.random(1);
         channel.onmessage = function (event) {
-            send_to_outgoing(event.data);
+            console.log(event.data);
+            var data = JSON.parse(event.data);
+            if (!(data.id in values)) {
+                values[data.id] = 0.0;
+            }
+            if (values[data.id] !== false) {
+                values[data.id] += data.value;
+            }
+            send_to_outgoing(data);
         };
         channel.onopen = function () {
             console.log('channel opened');
@@ -76,7 +96,7 @@ $(function () {
             socket.emit('created_offer', {sdp: sessionDescription, pairing_id: data.pairing_id});
             offerer.setLocalDescription(sessionDescription);
         }, null, mediaConstraints);
-        setChannelEvents(offererDataChannel, 'offerer');
+        setChannelEvents(offererDataChannel);
     });
     socket.on('create_response', function (data) {
         var answerer = new RTCPeerConnection(iceServers, optionalRtpDataChannels);
@@ -84,7 +104,7 @@ $(function () {
             reliable: false
         });
         pairings[data.pairing_id] = {endpoint: answerer, datachannel: answererDataChannel};
-        setChannelEvents(answererDataChannel, 'answerer');
+        setChannelEvents(answererDataChannel);
         answerer.onicecandidate = function (event) {
             if (!event || !event.candidate) { return; }
             socket.emit('ice_candidate',
@@ -107,6 +127,12 @@ $(function () {
         pairing.endpoint.addIceCandidate(new RTCIceCandidate(data.candidate));
     });
     socket.on('nn_input', function (data) {
-        send_to_outgoing('hello!');
+        if (!(data.id in values)) {
+            values[data.id] = 0.0;
+        }
+        if (values[data.id] !== false) {
+            values[data.id] += data.value;
+        }
+        send_to_outgoing(data);
     });
 });

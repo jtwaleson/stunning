@@ -7,7 +7,12 @@ html, body {
 table {
 }
 table th, table td {
+    border: 1px solid #ddd;
+}
+.layer {
     min-height: 100px;
     min-width: 100px;
-    border: 1px solid #ddd;
+}
+.node {
+    border: 1px solid #9d9;
 }

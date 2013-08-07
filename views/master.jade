@@ -3,6 +3,7 @@ block append head
   include ../static/js/socket.io.min.js
   include ../static/js/uuid.js
   include ../static/js/master.js
+  include ../static/js/jquery-ui-1.9.2.custom.min.js
 
 block content
   h2 Idle clients
@@ -14,3 +15,5 @@ block content
       tr.clients
         th Layers
 
+  button.input Stream!
+  div.output
