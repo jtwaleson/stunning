@@ -52,6 +52,7 @@
     io.set('transports', ['xhr-polling']);
     io.set('log level', 4);
     io.sockets.on('connection', function (socket) {
+        io.sockets.in('master').emit('new_client', socket.id);
         socket.on('subscribe', function (data) {
             socket.join('clients');
         });
@@ -59,7 +60,6 @@
             socket.join('master');
         });
         socket.on('ice_candidate', function (data) {
-            console.log(socket);
             data.sender = socket.id;
             io.sockets.in('master').emit('ice_candidate', data);
         });
@@ -74,6 +74,12 @@
         });
         socket.on('make_connection', function (data) {
             io.sockets.sockets[data.receiver].emit('make_connection', data);
+        });
+        socket.on('nn_input', function (data) {
+            io.sockets.sockets[data.receiver].emit('nn_input', data.value);
+        });
+        socket.on('nn_output', function (data) {
+            io.sockets.in('master').emit('nn_output', data);
         });
         socket.on('created_offer', function (data) {
             io.sockets.in('master').emit('created_offer', data);

@@ -1,4 +1,5 @@
 var pairings = {};
+var outgoing = [];
 $(function () {
 
     var iceServers = {
@@ -18,12 +19,23 @@ $(function () {
     var RTCDataChannel = window.RTCDataChannel;
     var RTCSessionDescription = window.RTCSessionDescription;
 
+    function send_to_outgoing(data) {
+        if (outgoing.length === 0) {
+            socket.emit('nn_output', data);
+        } else {
+            for (var i in outgoing) {
+                var connection = outgoing[i];
+                connection.datachannel.send(data);
+            }
+        }
+    }
+
     function setChannelEvents(channel, channelNameForConsoleOutput) {
         channel.onmessage = function (event) {
-            console.debug(channelNameForConsoleOutput, 'received a message:', event.data);
+            send_to_outgoing(event.data);
         };
         channel.onopen = function () {
-            channel.send('first text message over RTP data ports');
+            console.log('channel opened');
         };
         channel.onclose = function (e) {
             console.error(e);
@@ -88,9 +100,13 @@ $(function () {
     socket.on('make_connection', function (data) {
         var pairing = pairings[data.pairing_id];
         pairing.endpoint.setRemoteDescription(new RTCSessionDescription(data.response));
+        outgoing.push(pairing);
     });
     socket.on('add_ice', function (data) {
         var pairing = pairings[data.pairing_id];
         pairing.endpoint.addIceCandidate(new RTCIceCandidate(data.candidate));
+    });
+    socket.on('nn_input', function (data) {
+        send_to_outgoing('hello!');
     });
 });

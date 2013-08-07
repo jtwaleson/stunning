@@ -1,6 +1,13 @@
 var pairings = {};
 var current_pairing = null;
+var clients = {};
 $(function () {
+    var add_client = function (id) {
+        if (!(id in clients)) {
+            $('<li>').text(id).appendTo('.clients');
+            clients[id] = true;
+        }
+    };
     var socket = window.io.connect(location.hostname, {transports: ['htmlfile', 'xhr-multipart', 'xhr-polling']});
     socket.emit('master');
     $.ajax({
@@ -8,13 +15,17 @@ $(function () {
         url: '/master/clients',
         success: function (data) {
             for (var i in data) {
-                var item = data[i];
-                $('<li>').text(item).appendTo('.clients');
+                add_client(data[i]);
             }
         },
         error: function (err) {
             alert(err);
         },
+    });
+    $('.clients').on('dblclick', 'li', function (event) {
+        var id = $(this).text();
+        socket.emit('nn_input', {receiver: id, value: 'hello!'});
+        event.preventDefault();
     });
     $('.clients').on('click', 'li', function (event) {
         if (current_pairing) {
@@ -50,5 +61,11 @@ $(function () {
         var pairing = pairings[data.pairing_id];
         pairing.answerer.sdp = data.sdp;
         socket.emit('make_connection', {receiver: pairing.offerer.id, response: pairing.answerer.sdp, pairing_id: pairing.id});
+    });
+    socket.on('new_client', function (data) {
+        add_client(data);
+    });
+    socket.on('nn_output', function (data) {
+        console.log('nn_output', data);
     });
 });
