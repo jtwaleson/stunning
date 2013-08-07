@@ -4,11 +4,11 @@ var clients = {};
 $(function () {
     var add_client = function (id) {
         if (!(id in clients)) {
-            $('<li>').text(id).appendTo('.clients');
+            $('<li>').text(id).appendTo('.idle-clients');
             clients[id] = true;
         }
     };
-    var socket = window.io.connect(location.hostname, {transports: ['htmlfile', 'xhr-multipart', 'xhr-polling']});
+    var socket = window.io.connect(location.hostname, {transports: ['websocket', 'htmlfile', 'xhr-multipart', 'xhr-polling']});
     socket.emit('master');
     $.ajax({
         type: 'GET',
@@ -67,5 +67,12 @@ $(function () {
     });
     socket.on('nn_output', function (data) {
         console.log('nn_output', data);
+    });
+
+
+    $('.add-layer').click(function (event) {
+        event.preventDefault();
+        console.log('adding layer');
+        $('tr.clients').append('<td>');
     });
 });

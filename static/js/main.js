@@ -55,7 +55,7 @@ $(function () {
     };
     window.addIncoming = function () {
     };
-    var socket = window.io.connect(location.hostname, {transports: ['htmlfile', 'xhr-multipart', 'xhr-polling']});
+    var socket = window.io.connect(location.hostname, {transports: ['websocket', 'htmlfile', 'xhr-multipart', 'xhr-polling']});
     socket.on('connect', function (data) {
         $('.socketid').text(socket.socket.sessionid);
     });

@@ -49,7 +49,7 @@
         console.log('Express server listening on port ' + app.get('port'));
     });
 
-    io.set('transports', ['xhr-polling']);
+    io.set('transports', ['websocket', 'xhr-polling']);
     io.set('log level', 4);
     io.sockets.on('connection', function (socket) {
         io.sockets.in('master').emit('new_client', socket.id);
