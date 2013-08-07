@@ -1,0 +1,8 @@
+extends layout
+block append head
+  include ../static/js/socket.io.min.js
+  include ../static/js/uuid.js
+  include ../static/js/master.js
+
+block content
+  ul.clients
