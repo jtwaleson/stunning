@@ -34,8 +34,6 @@ $(function () {
     socket.on('ice_candidate', function (data) {
         var pairing = pairings[data.pairing_id];
         var receiver = null;
-        console.log(data.sender);
-        console.log(pairing.offerer.id);
         if (data.sender === pairing.offerer.id) {
             receiver = pairing.answerer.id;
         } else {

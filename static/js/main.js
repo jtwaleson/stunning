@@ -22,7 +22,6 @@ $(function () {
         channel.onmessage = function (event) {
             console.debug(channelNameForConsoleOutput, 'received a message:', event.data);
         };
-
         channel.onopen = function () {
             channel.send('first text message over RTP data ports');
         };
@@ -50,11 +49,9 @@ $(function () {
     });
     socket.emit('subscribe', {});
     socket.on('create_offer', function (data) {
-        console.log('creating offer', data);
         var offerer = new RTCPeerConnection(iceServers, optionalRtpDataChannels);
         offerer.onicecandidate = function (event) {
             if (!event || !event.candidate)  { return; }
-            console.log('creating ice for offer');
             socket.emit('ice_candidate',
                 {candidate: event.candidate, pairing_id: data.pairing_id}
             );
@@ -64,7 +61,6 @@ $(function () {
         });
         pairings[data.pairing_id] = {endpoint: offerer, datachannel: offererDataChannel};
         offerer.createOffer(function (sessionDescription) {
-            console.log('responding with offer');
             socket.emit('created_offer', {sdp: sessionDescription, pairing_id: data.pairing_id});
             offerer.setLocalDescription(sessionDescription);
         }, null, mediaConstraints);
@@ -79,25 +75,21 @@ $(function () {
         setChannelEvents(answererDataChannel, 'answerer');
         answerer.onicecandidate = function (event) {
             if (!event || !event.candidate) { return; }
-            console.log('created ice for response');
             socket.emit('ice_candidate',
                 {candidate: event.candidate, pairing_id: data.pairing_id, resonse: true}
             );
         };
         answerer.setRemoteDescription(new RTCSessionDescription(data.offer));
         answerer.createAnswer(function (sessionDescription) {
-            console.log('created response', sessionDescription);
             answerer.setLocalDescription(sessionDescription);
             socket.emit('created_response', {sdp: sessionDescription, pairing_id: data.pairing_id});
         }, null, mediaConstraints);
     });
     socket.on('make_connection', function (data) {
-        console.log('make_connection', data);
         var pairing = pairings[data.pairing_id];
         pairing.endpoint.setRemoteDescription(new RTCSessionDescription(data.response));
     });
     socket.on('add_ice', function (data) {
-        console.log('adding ice!');
         var pairing = pairings[data.pairing_id];
         pairing.endpoint.addIceCandidate(new RTCIceCandidate(data.candidate));
     });
