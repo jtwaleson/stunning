@@ -34,7 +34,7 @@ var create_node = function () {
                     var connection = outgoing[i];
                     var block = {
                         id: data.id,
-                        value: connection.datachannel.sigma,
+                        value: connection.datachannel.weight,
                     };
                     connection.datachannel.send(JSON.stringify(block));
                 }
@@ -44,7 +44,6 @@ var create_node = function () {
     }
 
     function setChannelEvents(channel) {
-        channel.sigma = Math.random(1);
         channel.onmessage = function (event) {
             console.log(event.data);
             var data = JSON.parse(event.data);
@@ -91,6 +90,7 @@ var create_node = function () {
         var offererDataChannel = offerer.createDataChannel('RTCDataChannel', {
             reliable: false
         });
+        offererDataChannel.weight = data.weight;
         pairings[data.pairing_id] = {endpoint: offerer, datachannel: offererDataChannel};
         offerer.createOffer(function (sessionDescription) {
             socket.emit('created_offer', {sdp: sessionDescription, pairing_id: data.pairing_id});

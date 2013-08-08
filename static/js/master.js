@@ -3,7 +3,16 @@ var clients = {};
 $(function () {
     var add_client = function (id) {
         if (!(id in clients)) {
-            $('<li>').text(id).appendTo('.idle-clients').draggable({revert: true, helper: 'clone'});
+            var found = false;
+            $('.layer').each(function () {
+                if ((!found) && $(this).find('.node').length < $(this).data('count')) {
+                    add_node_to_layer(id, $(this).attr('data-layer'));
+                    found = true;
+                }
+            });
+            if (!found) {
+                $('<li>').text(id).appendTo('.idle-clients').draggable({revert: true, helper: 'clone'});
+            }
             clients[id] = true;
         }
     };
@@ -51,7 +60,7 @@ $(function () {
             }
         });
         $('.clients .node').each(function () {
-            if ($(this).attr('data-client') === client_id) {
+            if ($(this).data('client') === client_id) {
                 $(this).remove();
             }
         });
@@ -63,45 +72,54 @@ $(function () {
     var add_node_to_layer = function (client_id, layer) {
         var node_number_in_layer = 0;
         var numbers = {};
-        var layer_div = $('td[data-layer=' + layer + '] .layer');
+        var layer_div = $('.layer[data-layer=' + layer + ']');
         layer_div.find('.node').each(function () {
-            numbers[parseInt($(this).attr('data-num'), 10)] = true;
+            numbers[$(this).data('number')] = true;
         });
         while (node_number_in_layer in numbers) {
             node_number_in_layer += 1;
         }
-        console.log(layer_div);
         $('<div>')
         .addClass('node')
-        .attr('data-client', client_id)
-        .attr('data-num', node_number_in_layer)
+        .data('client', client_id)
+        .data('number', node_number_in_layer)
         .text(layer + node_number_in_layer)
         .appendTo(layer_div);
 
+        var this_layer_weights = nn.layers[layer.charCodeAt(0) - 65];
+        var prev_layer_weights = nn.layers[layer.charCodeAt(0) - 66];
+
+        console.log('to ' + layer + node_number_in_layer);
         layer_div.closest('td').prev('td').find('.node').each(function () {
             var pairing = {
                 id: window.uuid.v4(),
-                offerer: {id: $(this).attr('data-client'), sdp: null},
+                offerer: {id: $(this).data('client'), sdp: null},
                 answerer: {id: client_id, sdp: null},
             };
             pairings[pairing.id] = pairing;
-            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id});
+            var weight = prev_layer_weights[$(this).data('number')][node_number_in_layer];
+            console.log($(this).closest('.layer').attr('data-layer') + $(this).data('number'), weight);
+            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
         });
+        console.log('from ' + layer + node_number_in_layer);
         layer_div.closest('td').next('td').find('.node').each(function () {
             var pairing = {
                 id: window.uuid.v4(),
                 offerer: {id: client_id, sdp: null},
-                answerer: {id: $(this).attr('data-client'), sdp: null},
+                answerer: {id: $(this).data('client'), sdp: null},
             };
             pairings[pairing.id] = pairing;
-            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id});
+            var weight = this_layer_weights[node_number_in_layer][$(this).data('number')];
+            console.log($(this).closest('.layer').attr('data-layer') + $(this).data('number'), weight);
+            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
         });
     };
-    var add_layer = function () {
+    var add_layer = function (count) {
+        if (!count) { count = 0; }
         var new_layer_code = String.fromCharCode($('tr.clients td').length + 65);
         $('<th>').appendTo('table thead tr').text(new_layer_code);
-        var td = $('<td>').appendTo('tr.clients').append('<div>').attr('data-layer', new_layer_code);
-        td.find('div').addClass('layer').droppable({
+        var td = $('<td>').appendTo('tr.clients').append('<div>');
+        td.find('div').addClass('layer').attr('data-layer', new_layer_code).data('count', count).droppable({
             accept: function (drag) { return true; },
             hoverClass: 'hover',
             activeClass: 'active',
@@ -109,15 +127,15 @@ $(function () {
                 var client_id = $(ui.helper).text();
                 ui.helper.remove();
                 ui.draggable.remove();
-                add_node_to_layer(client_id, $(this).closest('td').attr('data-layer'));
+                add_node_to_layer(client_id, $(this).attr('data-layer'));
             },
         });
     };
     var nn = {
         layers: [
             [
-                [1.0, 1.0, 0.0],
-                [0.0, 1.0, 1.0],
+                [1.0, 0.4, 0.0],
+                [0.0, 0.4, 1.0],
             ],
             [
                 [1.0],
@@ -137,12 +155,12 @@ $(function () {
     };
 
     for (var i in nn.layers) {
-        add_layer();
+        add_layer(nn.layers[i].length);
     }
     $('.input').click(function () {
         var id = Math.floor(Math.random() * 10000);
         $('.clients td').first().find('.node').each(function () {
-            socket.emit('nn_input', {receiver: $(this).attr('data-client'), value: {value: parseFloat(prompt('input plz')), id: id}});
+            socket.emit('nn_input', {receiver: $(this).data('client'), value: {value: parseFloat(prompt('input plz')), id: id}});
         });
     });
 });
