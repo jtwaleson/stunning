@@ -28,37 +28,44 @@ var create_node = function () {
     function add_to_value(key, value) {
         console.log('adding', key, value);
         if (!(key in values)) {
-            values[key] = 0.0;
+            values[key] = {val: 0.0, count: 0};
             setTimeout(function () {
-                if (values[key] !== false) {
+                if (values[key].val !== false) {
+                    console.log('not all values collected. timeout reached');
                     send_to_outgoing(key);
                 }
-            }, 1500);
+            }, 5000);
         }
-        if (values[key] !== false) {
-            values[key] += value;
+        if (values[key].val !== false) {
+            values[key].val += value;
+            values[key].count += 1;
+        }
+        if (values[key].count === Math.max(1, incoming.length)) {
+            console.log('all values collected!');
+            send_to_outgoing(key);
         }
     }
 
     function send_to_outgoing(key) {
-        console.log('value is now', values[key]);
-        if (values[key] !== false) {
+        console.log('value is now', values[key].val);
+        if (values[key].val !== false) {
+            var val = values[key].val;
+            values[key].val = false;
             if (outgoing.length === 0) {
-                console.log('emitting', values[key] >= 0.5 ? 1.0 : 0.0);
-                socket.emit('nn_output', values[key] >= 0.5 ? 1.0 : 0.0);
+                console.log('emitting', val >= 0.5 ? 1.0 : 0.0);
+                socket.emit('nn_output', val >= 0.5 ? 1.0 : 0.0);
             } else {
                 for (var i in outgoing) {
                     var connection = outgoing[i];
                     var block = {
                         id: key,
-                        value: values[key] >= 0.5 ? connection.datachannel.weight : 0.0,
+                        value: val >= 0.5 ? connection.datachannel.weight : 0.0,
                         sender: identifier,
                     };
                     console.log('emitting', block.value);
                     connection.datachannel.send(JSON.stringify(block));
                 }
             }
-            values[key] = false;
         }
     }
 
@@ -128,6 +135,7 @@ var create_node = function () {
             answerer.setLocalDescription(sessionDescription);
             socket.emit('created_response', {sdp: sessionDescription, pairing_id: data.pairing_id});
         }, null, mediaConstraints);
+        incoming.push(pairings[data.pairing_id]);
     });
     socket.on('make_connection', function (data) {
         var pairing = pairings[data.pairing_id];
