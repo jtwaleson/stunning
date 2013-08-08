@@ -45,6 +45,19 @@ $(function () {
     socket.on('new_client', function (data) {
         add_client(data);
     });
+    socket.on('client_disconnected', function (client_id) {
+        alert(client_id);
+        $('.idle-clients li').each(function () {
+            if ($(this).text() === client_id) {
+                $(this).remove();
+            }
+        });
+        $('.clients .node').each(function () {
+            if ($(this).text() === client_id) {
+                $(this).remove();
+            }
+        });
+    });
     socket.on('nn_output', function (data) {
         $('<p>').text(JSON.stringify(data)).prependTo('.output');
         $('.output').prepend('<hr>');

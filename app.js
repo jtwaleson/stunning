@@ -87,5 +87,8 @@
         socket.on('created_response', function (data) {
             io.sockets.in('master').emit('created_response', data);
         });
+        socket.on('disconnect', function (data) {
+            io.sockets.in('master').emit('client_disconnected', socket.id);
+        });
     });
 }).call(this);
