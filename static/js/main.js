@@ -1,7 +1,9 @@
-var pairings = {};
-var outgoing = [];
-var values = {};
-$(function () {
+var create_node = function () {
+    var pairings = {};
+    var outgoing = [];
+    var values = {};
+
+    var status_indicator = $('<div>').appendTo('body').text('creating....');
 
     var iceServers = {
         iceServers: [{
@@ -73,11 +75,9 @@ $(function () {
             OfferToReceiveVideo: false
         }
     };
-    window.addIncoming = function () {
-    };
     var socket = window.io.connect(location.hostname, {transports: ['websocket', 'htmlfile', 'xhr-multipart', 'xhr-polling']});
     socket.on('connect', function (data) {
-        $('.socketid').text(socket.socket.sessionid);
+        status_indicator.text(socket.socket.sessionid);
     });
     socket.emit('subscribe', {});
     socket.on('create_offer', function (data) {
@@ -135,4 +135,8 @@ $(function () {
         }
         send_to_outgoing(data);
     });
+};
+
+$(function () {
+    create_node();
 });
