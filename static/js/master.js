@@ -79,17 +79,18 @@ $(function () {
         while (node_number_in_layer in numbers) {
             node_number_in_layer += 1;
         }
+        var identifier = layer + node_number_in_layer;
         $('<div>')
         .addClass('node')
         .data('client', client_id)
         .data('number', node_number_in_layer)
-        .text(layer + node_number_in_layer)
+        .text(identifier)
         .appendTo(layer_div);
 
         var this_layer_weights = nn.layers[layer.charCodeAt(0) - 65];
         var prev_layer_weights = nn.layers[layer.charCodeAt(0) - 66];
 
-        console.log('to ' + layer + node_number_in_layer);
+        socket.emit('set_identifier', {receiver: client_id, identifier: identifier});
         layer_div.closest('td').prev('td').find('.node').each(function () {
             var pairing = {
                 id: window.uuid.v4(),
@@ -98,10 +99,8 @@ $(function () {
             };
             pairings[pairing.id] = pairing;
             var weight = prev_layer_weights[$(this).data('number')][node_number_in_layer];
-            console.log($(this).closest('.layer').attr('data-layer') + $(this).data('number'), weight);
             socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
         });
-        console.log('from ' + layer + node_number_in_layer);
         layer_div.closest('td').next('td').find('.node').each(function () {
             var pairing = {
                 id: window.uuid.v4(),
@@ -110,7 +109,6 @@ $(function () {
             };
             pairings[pairing.id] = pairing;
             var weight = this_layer_weights[node_number_in_layer][$(this).data('number')];
-            console.log($(this).closest('.layer').attr('data-layer') + $(this).data('number'), weight);
             socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
         });
     };

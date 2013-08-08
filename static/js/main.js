@@ -1,6 +1,7 @@
 var create_node = function () {
     var pairings = {};
     var outgoing = [];
+    var incoming = [];
     var values = {};
 
     var status_indicator = $('<div>').appendTo('body').text('creating....');
@@ -125,6 +126,9 @@ var create_node = function () {
     socket.on('add_ice', function (data) {
         var pairing = pairings[data.pairing_id];
         pairing.endpoint.addIceCandidate(new RTCIceCandidate(data.candidate));
+    });
+    socket.on('set_identifier', function (data) {
+        $('<h1>').text(data.identifier).prependTo('body');
     });
     socket.on('nn_input', function (data) {
         if (!(data.id in values)) {

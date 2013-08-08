@@ -73,6 +73,9 @@
         socket.on('nn_input', function (data) {
             io.sockets.sockets[data.receiver].emit('nn_input', data.value);
         });
+        socket.on('set_identifier', function (data) {
+            io.sockets.sockets[data.receiver].emit('set_identifier', data);
+        });
         socket.on('nn_output', function (data) {
             io.sockets.in('master').emit('nn_output', data);
         });
