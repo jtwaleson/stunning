@@ -59,22 +59,22 @@
             io.sockets.in('master').emit('ice_candidate', data);
         });
         socket.on('add_ice', function (data) {
-            io.sockets.sockets[data.receiver].emit('add_ice', data);
+            io.sockets.sockets[data.recipient].emit('add_ice', data);
         });
         socket.on('create_response', function (data) {
-            io.sockets.sockets[data.receiver].emit('create_response', data);
+            io.sockets.sockets[data.recipient].emit('create_response', data);
         });
         socket.on('create_offer', function (data) {
-            io.sockets.sockets[data.receiver].emit('create_offer', data);
+            io.sockets.sockets[data.recipient].emit('create_offer', data);
         });
         socket.on('make_connection', function (data) {
-            io.sockets.sockets[data.receiver].emit('make_connection', data);
+            io.sockets.sockets[data.recipient].emit('make_connection', data);
         });
         socket.on('nn_input', function (data) {
-            io.sockets.sockets[data.receiver].emit('nn_input', data.value);
+            io.sockets.sockets[data.recipient].emit('nn_input', data.value);
         });
         socket.on('set_identifier', function (data) {
-            io.sockets.sockets[data.receiver].emit('set_identifier', data);
+            io.sockets.sockets[data.recipient].emit('set_identifier', data);
         });
         socket.on('nn_output', function (data) {
             io.sockets.in('master').emit('nn_output', data);

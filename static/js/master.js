@@ -32,23 +32,23 @@ $(function () {
     });
     socket.on('ice_candidate', function (data) {
         var pairing = pairings[data.pairing_id];
-        var receiver = null;
+        var recipient = null;
         if (data.sender === pairing.offerer.id) {
-            receiver = pairing.answerer.id;
+            recipient = pairing.answerer.id;
         } else {
-            receiver = pairing.offerer.id;
+            recipient = pairing.offerer.id;
         }
-        socket.emit('add_ice', {receiver: receiver, candidate: data.candidate, pairing_id: pairing.id});
+        socket.emit('add_ice', {recipient: recipient, candidate: data.candidate, pairing_id: pairing.id});
     });
     socket.on('created_offer', function (data) {
         var pairing = pairings[data.pairing_id];
         pairing.offerer.sdp = data.sdp;
-        socket.emit('create_response', {receiver: pairing.answerer.id, offer: pairing.offerer.sdp, pairing_id: pairing.id});
+        socket.emit('create_response', {recipient: pairing.answerer.id, offer: pairing.offerer.sdp, pairing_id: pairing.id});
     });
     socket.on('created_response', function (data) {
         var pairing = pairings[data.pairing_id];
         pairing.answerer.sdp = data.sdp;
-        socket.emit('make_connection', {receiver: pairing.offerer.id, response: pairing.answerer.sdp, pairing_id: pairing.id});
+        socket.emit('make_connection', {recipient: pairing.offerer.id, response: pairing.answerer.sdp, pairing_id: pairing.id});
     });
     socket.on('new_client', function (data) {
         add_client(data);
@@ -90,7 +90,7 @@ $(function () {
         var this_layer_weights = nn.layers[layer.charCodeAt(0) - 65];
         var prev_layer_weights = nn.layers[layer.charCodeAt(0) - 66];
 
-        socket.emit('set_identifier', {receiver: client_id, identifier: identifier});
+        socket.emit('set_identifier', {recipient: client_id, identifier: identifier});
         layer_div.closest('td').prev('td').find('.node').each(function () {
             var pairing = {
                 id: window.uuid.v4(),
@@ -99,7 +99,7 @@ $(function () {
             };
             pairings[pairing.id] = pairing;
             var weight = prev_layer_weights[$(this).data('number')][node_number_in_layer];
-            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
+            socket.emit('create_offer', {recipient: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
         });
         layer_div.closest('td').next('td').find('.node').each(function () {
             var pairing = {
@@ -109,7 +109,7 @@ $(function () {
             };
             pairings[pairing.id] = pairing;
             var weight = this_layer_weights[node_number_in_layer][$(this).data('number')];
-            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
+            socket.emit('create_offer', {recipient: pairing.offerer.id, pairing_id: pairing.id, weight: weight});
         });
     };
     var add_layer = function (count) {
@@ -158,7 +158,7 @@ $(function () {
     $('.input').click(function () {
         var id = Math.floor(Math.random() * 10000);
         $('.clients td').first().find('.node').each(function () {
-            socket.emit('nn_input', {receiver: $(this).data('client'), value: {value: parseFloat(prompt('input plz')), id: id}});
+            socket.emit('nn_input', {recipient: $(this).data('client'), value: {value: parseFloat(prompt('input plz')), id: id}});
         });
     });
 });
