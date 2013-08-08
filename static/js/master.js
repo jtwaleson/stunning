@@ -1,5 +1,4 @@
 var pairings = {};
-var current_pairing = null;
 var clients = {};
 $(function () {
     var add_client = function (id) {
@@ -46,7 +45,6 @@ $(function () {
         add_client(data);
     });
     socket.on('client_disconnected', function (client_id) {
-        alert(client_id);
         $('.idle-clients li').each(function () {
             if ($(this).text() === client_id) {
                 $(this).remove();
@@ -62,8 +60,44 @@ $(function () {
         $('<p>').text(JSON.stringify(data)).prependTo('.output');
         $('.output').prepend('<hr>');
     });
-    $('.add-layer').click(function (event) {
-        event.preventDefault();
+    var add_node_to_layer = function (client_id, layer) {
+        var node_number_in_layer = 0;
+        var numbers = {};
+        var layer_div = $('td[data-layer=' + layer + '] .layer');
+        layer_div.find('.node').each(function () {
+            numbers[parseInt($(this).attr('data-num'), 10)] = true;
+        });
+        while (node_number_in_layer in numbers) {
+            node_number_in_layer += 1;
+        }
+        console.log(layer_div);
+        $('<div>')
+        .addClass('node')
+        .attr('data-client', client_id)
+        .attr('data-num', node_number_in_layer)
+        .text(layer + node_number_in_layer)
+        .appendTo(layer_div);
+
+        layer_div.closest('td').prev('td').find('.node').each(function () {
+            var pairing = {
+                id: window.uuid.v4(),
+                offerer: {id: $(this).attr('data-client'), sdp: null},
+                answerer: {id: client_id, sdp: null},
+            };
+            pairings[pairing.id] = pairing;
+            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id});
+        });
+        layer_div.closest('td').next('td').find('.node').each(function () {
+            var pairing = {
+                id: window.uuid.v4(),
+                offerer: {id: client_id, sdp: null},
+                answerer: {id: $(this).attr('data-client'), sdp: null},
+            };
+            pairings[pairing.id] = pairing;
+            socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id});
+        });
+    };
+    var add_layer = function () {
         var new_layer_code = String.fromCharCode($('tr.clients td').length + 65);
         $('<th>').appendTo('table thead tr').text(new_layer_code);
         var td = $('<td>').appendTo('tr.clients').append('<div>').attr('data-layer', new_layer_code);
@@ -73,54 +107,42 @@ $(function () {
             activeClass: 'active',
             drop: function (event, ui) {
                 var client_id = $(ui.helper).text();
-                var node_number_in_layer = 0;
-                var numbers = {};
-                $(this).find('.node').each(function () {
-                    numbers[parseInt($(this).attr('data-num'), 10)] = true;
-                });
-                while (node_number_in_layer in numbers) {
-                    node_number_in_layer += 1;
-                }
-                $('<div>')
-                    .addClass('node')
-                    .attr('data-client', client_id)
-                    .attr('data-num', node_number_in_layer)
-                    .text(new_layer_code + node_number_in_layer)
-                    .appendTo(this);
                 ui.helper.remove();
                 ui.draggable.remove();
-                $(this).closest('td').prev('td').find('.node').each(function () {
-                    var pairing = {
-                        id: window.uuid.v4(),
-                        offerer: {id: $(this).attr('data-client'), sdp: null},
-                        answerer: {id: client_id, sdp: null},
-                    };
-                    pairings[pairing.id] = pairing;
-                    socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id});
-                });
-                $(this).closest('td').next('td').find('.node').each(function () {
-                    var pairing = {
-                        id: window.uuid.v4(),
-                        offerer: {id: client_id, sdp: null},
-                        answerer: {id: $(this).attr('data-client'), sdp: null},
-                    };
-                    pairings[pairing.id] = pairing;
-                    socket.emit('create_offer', {receiver: pairing.offerer.id, pairing_id: pairing.id});
-                });
+                add_node_to_layer(client_id, $(this).closest('td').attr('data-layer'));
             },
         });
-    });
-    var nn = [];
-    $('.add-layer').click();
-    $('.add-layer').click();
-    $('.add-layer').click();
-    $('.add-layer').click();
-    $('.add-layer').click();
+    };
+    var nn = {
+        layers: [
+            [
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 1.0],
+            ],
+            [
+                [1.0],
+                [-2.0],
+                [1.0],
+            ],
+            [
+                [1.0],
+            ],
+        ],
+        cases: [
+            {input: [0, 0], output: [0]},
+            {input: [0, 1], output: [1]},
+            {input: [1, 0], output: [1]},
+            {input: [1, 1], output: [0]},
+        ],
+    };
+
+    for (var i in nn.layers) {
+        add_layer();
+    }
     $('.input').click(function () {
-        var value = prompt('input plz');
         var id = Math.floor(Math.random() * 10000);
         $('.clients td').first().find('.node').each(function () {
-            socket.emit('nn_input', {receiver: $(this).attr('data-client'), value: {value: parseFloat(value), id: id}});
+            socket.emit('nn_input', {receiver: $(this).attr('data-client'), value: {value: parseFloat(prompt('input plz')), id: id}});
         });
     });
 });
