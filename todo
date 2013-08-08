@@ -1,0 +1,3 @@
+- disconnect handling in clients
+- create network from template
+- implement backpropagation
