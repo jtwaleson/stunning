@@ -1,3 +1,5 @@
 - disconnect handling in clients
 - create network from template
 - implement backpropagation
+- master node hooked to input and output using rtc
+- result grouping
