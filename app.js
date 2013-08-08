@@ -9,15 +9,10 @@
     server = http.createServer(app);
     io = require('socket.io').listen(server);
 
-    app.configure('development', function () {
-        app.set('origin', 'http://192.168.1.121:3000');
-    });
-
     app.configure(function () {
         app.set('port', process.env.PORT || 3000);
         app.set('views', __dirname + '/views');
         app.set('view engine', 'jade');
-        app.set('authenticator', 'http://jtwaleson.github.io/vault/');
         app.use(express.logger('dev'));
         app.use(express.compress());
         app.use(express.bodyParser());
