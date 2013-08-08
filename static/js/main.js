@@ -3,6 +3,7 @@ var create_node = function () {
     var outgoing = [];
     var incoming = [];
     var values = {};
+    var identifier = null;
 
     var status_indicator = $('<div>').appendTo('body').text('creating....');
 
@@ -25,31 +26,35 @@ var create_node = function () {
 
 
     function add_to_value(key, value) {
+        console.log('adding', key, value);
         if (!(key in values)) {
             values[key] = 0.0;
             setTimeout(function () {
                 if (values[key] !== false) {
-                    send_to_outgoing(key, 'force_zero');
+                    send_to_outgoing(key);
                 }
-            }, 100);
+            }, 1500);
         }
         if (values[key] !== false) {
             values[key] += value;
         }
-        send_to_outgoing(key);
     }
 
-    function send_to_outgoing(key, force_zero) {
-        if (force_zero || (values[key] !== false && values[key] > 0.5)) {
+    function send_to_outgoing(key) {
+        console.log('value is now', values[key]);
+        if (values[key] !== false) {
             if (outgoing.length === 0) {
-                socket.emit('nn_output', force_zero ? 0.0 : 1.0);
+                console.log('emitting', values[key] >= 0.5 ? 1.0 : 0.0);
+                socket.emit('nn_output', values[key] >= 0.5 ? 1.0 : 0.0);
             } else {
                 for (var i in outgoing) {
                     var connection = outgoing[i];
                     var block = {
                         id: key,
-                        value: force_zero ? 0.0 : connection.datachannel.weight,
+                        value: values[key] >= 0.5 ? connection.datachannel.weight : 0.0,
+                        sender: identifier,
                     };
+                    console.log('emitting', block.value);
                     connection.datachannel.send(JSON.stringify(block));
                 }
             }
@@ -60,6 +65,7 @@ var create_node = function () {
     function setChannelEvents(channel) {
         channel.onmessage = function (event) {
             var data = JSON.parse(event.data);
+            console.log('message from', data.sender);
             add_to_value(data.id, data.value);
         };
         channel.onopen = function () {
@@ -133,6 +139,7 @@ var create_node = function () {
         pairing.endpoint.addIceCandidate(new RTCIceCandidate(data.candidate));
     });
     socket.on('set_identifier', function (data) {
+        identifier = data.identifier;
         $('<h1>').text(data.identifier).prependTo('body');
     });
     socket.on('nn_input', function (data) {
