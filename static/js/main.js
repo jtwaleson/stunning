@@ -23,38 +23,44 @@ var create_node = function () {
     var RTCDataChannel = window.RTCDataChannel;
     var RTCSessionDescription = window.RTCSessionDescription;
 
-    function send_to_outgoing(data) {
-        if (!(data.id in values)) {
-            values[data.id] = 0.0;
+
+    function add_to_value(key, value) {
+        if (!(key in values)) {
+            values[key] = 0.0;
+            setTimeout(function () {
+                if (values[key] !== false) {
+                    send_to_outgoing(key, 'force_zero');
+                }
+            }, 100);
         }
-        if (values[data.id] !== false && values[data.id] > 0.5) {
+        if (values[key] !== false) {
+            values[key] += value;
+        }
+        send_to_outgoing(key);
+    }
+
+    function send_to_outgoing(key, force_zero) {
+        if (force_zero || (values[key] !== false && values[key] > 0.5)) {
             if (outgoing.length === 0) {
-                socket.emit('nn_output', data);
+                socket.emit('nn_output', force_zero ? 0.0 : 1.0);
             } else {
                 for (var i in outgoing) {
                     var connection = outgoing[i];
                     var block = {
-                        id: data.id,
-                        value: connection.datachannel.weight,
+                        id: key,
+                        value: force_zero ? 0.0 : connection.datachannel.weight,
                     };
                     connection.datachannel.send(JSON.stringify(block));
                 }
             }
-            values[data.id] = false;
+            values[key] = false;
         }
     }
 
     function setChannelEvents(channel) {
         channel.onmessage = function (event) {
-            console.log(event.data);
             var data = JSON.parse(event.data);
-            if (!(data.id in values)) {
-                values[data.id] = 0.0;
-            }
-            if (values[data.id] !== false) {
-                values[data.id] += data.value;
-            }
-            send_to_outgoing(data);
+            add_to_value(data.id, data.value);
         };
         channel.onopen = function () {
             console.log('channel opened');
@@ -66,7 +72,6 @@ var create_node = function () {
             console.error(e);
         };
     }
-
 
     var mediaConstraints = {
         optional: [],
@@ -131,13 +136,7 @@ var create_node = function () {
         $('<h1>').text(data.identifier).prependTo('body');
     });
     socket.on('nn_input', function (data) {
-        if (!(data.id in values)) {
-            values[data.id] = 0.0;
-        }
-        if (values[data.id] !== false) {
-            values[data.id] += data.value;
-        }
-        send_to_outgoing(data);
+        add_to_value(data.id, data.value);
     });
 };
 
