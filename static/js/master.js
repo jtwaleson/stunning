@@ -87,8 +87,8 @@ $(function () {
         .text(identifier)
         .appendTo(layer_div);
 
-        var this_layer_weights = nn.layers[layer.charCodeAt(0) - 65];
-        var prev_layer_weights = nn.layers[layer.charCodeAt(0) - 66];
+        var this_layer_weights = nn.layers[layer_div.data('number')];
+        var prev_layer_weights = nn.layers[layer_div.data('number') - 1];
 
         socket.emit('set_identifier', {recipient: client_id, identifier: identifier});
         layer_div.closest('td').prev('td').find('.node').each(function () {
@@ -114,10 +114,11 @@ $(function () {
     };
     var add_layer = function (count) {
         if (!count) { count = 0; }
-        var new_layer_code = String.fromCharCode($('tr.clients td').length + 65);
+        var new_layer_number = $('tr.clients td').length;
+        var new_layer_code = String.fromCharCode(new_layer_number + 65);
         $('<th>').appendTo('table thead tr').text(new_layer_code);
         var td = $('<td>').appendTo('tr.clients').append('<div>');
-        td.find('div').addClass('layer').attr('data-layer', new_layer_code).data('count', count).droppable({
+        td.find('div').addClass('layer').attr('data-layer', new_layer_code).data('count', count).data('number', new_layer_number).droppable({
             accept: function (drag) { return true; },
             hoverClass: 'hover',
             activeClass: 'active',
