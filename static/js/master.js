@@ -1,5 +1,6 @@
 var pairings = {};
 var clients = {};
+var sequence = 0;
 $(function () {
     var add_client = function (id) {
         if (!(id in clients)) {
@@ -66,8 +67,7 @@ $(function () {
         });
     });
     socket.on('nn_output', function (data) {
-        $('<p>').text(JSON.stringify(data)).prependTo('.output');
-        $('.output').prepend('<hr>');
+        $('<div>').text(data.value).appendTo('.output tr[data-sequence=' + data.id + '] td.out');
     });
     var add_node_to_layer = function (client_id, layer) {
         var node_number_in_layer = 0;
@@ -116,7 +116,7 @@ $(function () {
         if (!count) { count = 0; }
         var new_layer_number = $('tr.clients td').length;
         var new_layer_code = String.fromCharCode(new_layer_number + 65);
-        $('<th>').appendTo('table thead tr').text(new_layer_code);
+        $('<th>').appendTo('table.layers thead tr').text(new_layer_code);
         var td = $('<td>').appendTo('tr.clients').append('<div>');
         td.find('div').addClass('layer').attr('data-layer', new_layer_code).data('count', count).data('number', new_layer_number).droppable({
             accept: function (drag) { return true; },
@@ -156,10 +156,31 @@ $(function () {
     for (var i in nn.layers) {
         add_layer(nn.layers[i].length);
     }
-    $('.input').click(function () {
-        var id = Math.floor(Math.random() * 10000);
-        $('.clients td').first().find('.node').each(function () {
-            socket.emit('nn_input', {recipient: $(this).data('client'), value: {value: parseFloat(prompt('input plz')), id: id}});
+    var nn_execute = function (inputs) {
+        var result_tr = $('<tr>').attr('data-sequence', sequence).prependTo('.output');
+        var in_td = $('<td>').addClass('in').appendTo(result_tr);
+        var out_td = $('<td>').addClass('out').appendTo(result_tr);
+        $('<div>').text(JSON.stringify(inputs)).appendTo(in_td);
+        $('.layer').first().find('.node').each(function () {
+            socket.emit('nn_input', {recipient: $(this).data('client'), value: {value: inputs[$(this).data('number')], id: sequence}});
         });
+        sequence += 1;
+    };
+    $('.input').click(function () {
+        var inputs = {};
+        $('.layer').first().find('.node').each(function () {
+            var value = parseFloat(prompt('input for ' + $(this).text()));
+            if (isNaN(value)) { throw "Not a number!"; }
+            inputs[$(this).data('number')] = value;
+        });
+        nn_execute(inputs);
+    });
+    $('.loop').click(function () {
+        var n = parseInt(prompt('how many iterations?'), 10);
+        var k = nn.cases.length;
+        for (var i = 0; i < n; i++) {
+            var j = i % k;
+            nn_execute(nn.cases[j].input);
+        }
     });
 });

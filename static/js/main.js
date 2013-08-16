@@ -26,7 +26,6 @@ var create_node = function () {
 
 
     function add_to_value(key, value) {
-        console.log('adding', key, value);
         if (!(key in values)) {
             values[key] = {val: 0.0, count: 0};
             setTimeout(function () {
@@ -41,19 +40,16 @@ var create_node = function () {
             values[key].count += 1;
         }
         if (values[key].count === Math.max(1, incoming.length)) {
-            console.log('all values collected!');
             send_to_outgoing(key);
         }
     }
 
     function send_to_outgoing(key) {
-        console.log('value is now', values[key].val);
         if (values[key].val !== false) {
             var val = values[key].val;
             values[key].val = false;
             if (outgoing.length === 0) {
-                console.log('emitting', val >= 0.5 ? 1.0 : 0.0);
-                socket.emit('nn_output', val >= 0.5 ? 1.0 : 0.0);
+                socket.emit('nn_output', {id: key, value: val >= 0.5 ? 1.0 : 0.0});
             } else {
                 for (var i in outgoing) {
                     var connection = outgoing[i];
@@ -62,7 +58,6 @@ var create_node = function () {
                         value: val >= 0.5 ? connection.datachannel.weight : 0.0,
                         sender: identifier,
                     };
-                    console.log('emitting', block.value);
                     connection.datachannel.send(JSON.stringify(block));
                 }
             }
@@ -72,7 +67,6 @@ var create_node = function () {
     function setChannelEvents(channel) {
         channel.onmessage = function (event) {
             var data = JSON.parse(event.data);
-            console.log('message from', data.sender);
             add_to_value(data.id, data.value);
         };
         channel.onopen = function () {
